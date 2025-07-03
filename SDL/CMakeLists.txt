@@ -15,3 +15,4 @@ include(cmake/utils.cmake)
 fetch_sdl()
 
 add_subdirectory(00-base_framework)
+add_subdirectory(01-gpu_render)

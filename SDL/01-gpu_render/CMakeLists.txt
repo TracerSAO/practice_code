@@ -1,4 +1,4 @@
-project(00-base_framework)
+project(01-gpu_render)
 
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS ./*.hpp ./*.cpp)
 
