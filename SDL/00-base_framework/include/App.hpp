@@ -1,16 +1,12 @@
 #pragma once
 
 #include <memory>
+
 #include <SDL3/SDL.h>
 
 class App
 {
 public:
-    static void Create();
-    static void Destory();
-    static void Render();
-
-private:
     App() = default;
     ~App() = default;
     App(App &&) = delete;
@@ -18,6 +14,11 @@ private:
     App &operator=(App &&) = delete;
     App &operator=(const App &) = delete;
 
+    static void Create();
+    static void Destory();
+    static void Render();
+
+private:
     void init();
     void render();
 

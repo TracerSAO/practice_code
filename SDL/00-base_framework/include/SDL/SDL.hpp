@@ -30,7 +30,7 @@ SDL_BIND_CREATE_AND_DESTROY(SDL_Window, SDL_CreateWindow, SDL_DestroyWindow);
 
 static_assert(std::is_same_v<::SDL_GLContext, SDL_GLContextState*>,
     "This datatype is available since SDL 3.2.0: typedef struct SDL_GLContextState *SDL_GLContext;");
-SDL_BIND_CREATE_AND_DESTROY(SDL_GLContextState, , SDL_DestroyWindow);
+SDL_BIND_CREATE_AND_DESTROY(SDL_GLContextState, SDL_GL_CreateContext, SDL_GL_DestroyContext);
 
 template <>
 struct Meta<SDL_GPUGraphicsPipeline> {

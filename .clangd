@@ -1,0 +1,26 @@
+CompileFlags:
+    Compiler: clang
+Diagnostics:
+    # 屏蔽所有提示，建议在需要检查时再临时打开
+    # Suppress: "*"
+    ClangTidy:
+        Add: [
+            bugprone-*,
+            performance-*,
+            # cert-*,
+            # cppcoreguidelines-*,
+            # readability-*,
+            # portability-*
+        ]
+        Remove: [
+            bugprone-lambda-function-name,
+            cppcoreguidelines-pro-type-vararg,
+            # will create crash
+            modernize-*,
+            readability-avoid-const-params-in-decls,
+            readability-implicit-bool-conversion,
+            readability-redundant-access-specifiers
+        ]
+    UnusedIncludes: Strict
+Index:
+    Background: Build
