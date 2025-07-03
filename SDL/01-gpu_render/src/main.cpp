@@ -18,9 +18,11 @@ SDL_AppResult SDLCALL SDL_AppInit(void **appstate, int argc, char *argv[])
         App::Create();
     }
     catch (const std::runtime_error &error) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, ">>> %s", error.what());
         return SDL_AppResult::SDL_APP_FAILURE;
     }
     catch (...) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "unknow error >>> %s", SDL_GetError());
         return SDL_AppResult::SDL_APP_FAILURE;
     }
 

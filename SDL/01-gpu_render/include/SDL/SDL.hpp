@@ -31,7 +31,7 @@
                 throw std::runtime_error{::SDL_GetError()}; \
             } \
             return std::shared_ptr<SDL_Type>(ptr, \
-                [device=std::move(device)] (auto ptr) { \
+                [device] (auto ptr) { \
                     ::SDL_GPUDestoryFunc(device.get(), ptr); \
                 }); \
         } \
@@ -50,7 +50,9 @@ static_assert(std::is_same_v<::SDL_GLContext, SDL_GLContextState*>,
 SDL_BIND_CREATE_AND_DESTROY(SDL_GLContextState, SDL_GL_CreateContext, SDL_GL_DestroyContext);
 
 SDL_BIND_CREATE_AND_DESTROY(SDL_GPUDevice, SDL_CreateGPUDevice, SDL_DestroyGPUDevice);
+SDL_GPU_BIND_CREATE_AND_DESTORY(SDL_GPUBuffer, SDL_CreateGPUBuffer, SDL_ReleaseGPUBuffer);
 SDL_GPU_BIND_CREATE_AND_DESTORY(SDL_GPUShader, SDL_CreateGPUShader, SDL_ReleaseGPUShader);
+SDL_GPU_BIND_CREATE_AND_DESTORY(SDL_GPUTransferBuffer, SDL_CreateGPUTransferBuffer, SDL_ReleaseGPUTransferBuffer);
 SDL_GPU_BIND_CREATE_AND_DESTORY(SDL_GPUGraphicsPipeline, SDL_CreateGPUGraphicsPipeline, SDL_ReleaseGPUGraphicsPipeline);
 
 } // namespace SDL

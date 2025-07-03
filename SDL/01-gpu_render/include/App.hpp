@@ -7,8 +7,8 @@
 class App
 {
 public:
-    App() = default;
-    ~App() = default;
+    App();
+    ~App();
     App(App &&) = delete;
     App(const App &) = delete;
     App &operator=(App &&) = delete;
@@ -19,10 +19,12 @@ public:
     static void Render();
 
 private:
-    void init();
     void render();
 
 private:
     std::shared_ptr<SDL_Window> window_;
     std::shared_ptr<SDL_GPUDevice> gpu_device_;
+
+    std::shared_ptr<SDL_GPUBuffer> gpu_vertex_buffer_;
+    std::shared_ptr<SDL_GPUTransferBuffer> gpu_transfer_buffer_;
 };
