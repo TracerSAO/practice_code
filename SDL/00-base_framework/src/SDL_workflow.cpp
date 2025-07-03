@@ -29,12 +29,13 @@ SDL_AppResult SDL_Workflow::onInit(int argc, char *argv[])
 void SDL_Workflow::onQuit(SDL_AppResult result)
 {
     (void)result;
+
     App::Destory();
 }
 
 SDL_AppResult SDL_Workflow::onUpdate()
 {
-    App::GetInstance().render();
+    App::Render();
 
     return SDL_AppResult::SDL_APP_CONTINUE;
 }
