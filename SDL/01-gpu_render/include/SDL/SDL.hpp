@@ -31,7 +31,7 @@
                 throw std::runtime_error{::SDL_GetError()}; \
             } \
             return std::shared_ptr<SDL_Type>(ptr, \
-                [device] (auto ptr) { \
+                [device=std::move(device)] (auto ptr) { \
                     ::SDL_GPUDestoryFunc(device.get(), ptr); \
                 }); \
         } \
