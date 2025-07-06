@@ -1,5 +1,6 @@
 #include "App.hpp"
 
+#include <array>
 #include <stdexcept>
 
 #include "SDL/SDL.hpp"
@@ -76,13 +77,13 @@ void App::initGpuPiepline()
     size_t vertex_code_size{};
     size_t fragment_code_size{};
     std::unique_ptr<void, decltype(&SDL_free)> vertex_code {
-        SDL_LoadFile("D:\\Code\\Game\\practice_code\\SDL\\01-gpu_render\\shader\\vertex.spv", &vertex_code_size),
+        SDL_LoadFile("..\\..\\SDL\\01-gpu_render\\shader\\vertex.spv", &vertex_code_size),
         SDL_free};
     if (nullptr == vertex_code) {
         throw std::runtime_error{::SDL_GetError()};
     }
     std::unique_ptr<void, decltype(&SDL_free)> fragment_code {
-        SDL_LoadFile("D:\\Code\\Game\\practice_code\\SDL\\01-gpu_render\\shader\\fragment.spv", &fragment_code_size),
+        SDL_LoadFile("..\\..\\SDL\\01-gpu_render\\shader\\fragment.spv", &fragment_code_size),
         SDL_free};
     if (nullptr == fragment_code) {
         throw std::runtime_error{::SDL_GetError()};
@@ -119,19 +120,19 @@ void App::initGpuPiepline()
 
     // describe the vertex buffers
     {
-        SDL_GPUVertexBufferDescription vertex_buffer_descriptions[1]{};
+        std::array<SDL_GPUVertexBufferDescription, 1> vertex_buffer_descriptions{};
         vertex_buffer_descriptions[0].slot               = 0;
         vertex_buffer_descriptions[0].input_rate         = SDL_GPU_VERTEXINPUTRATE_VERTEX;
         vertex_buffer_descriptions[0].instance_step_rate = 0;
         vertex_buffer_descriptions[0].pitch              = sizeof(Vertex);
 
-        pipeline_createinfo.vertex_input_state.num_vertex_buffers = 1;
-        pipeline_createinfo.vertex_input_state.vertex_buffer_descriptions = vertex_buffer_descriptions;
+        pipeline_createinfo.vertex_input_state.num_vertex_buffers = vertex_buffer_descriptions.size();
+        pipeline_createinfo.vertex_input_state.vertex_buffer_descriptions = vertex_buffer_descriptions.data();
     }
 
     // describe the vertex attribute
     {
-        SDL_GPUVertexAttribute vertex_attributes[2]{};
+        std::array<SDL_GPUVertexAttribute, 2> vertex_attributes{};
         // a_position
         vertex_attributes[0].buffer_slot = 0; // fetch data from the buffer at slot 0
         vertex_attributes[0].location    = 0; // layout (location = 0) in shader
@@ -143,13 +144,13 @@ void App::initGpuPiepline()
         vertex_attributes[1].format      = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; //vec4
         vertex_attributes[1].offset      = sizeof(float) * 3; // 4th float from current buffer position
 
-        pipeline_createinfo.vertex_input_state.num_vertex_attributes = 2;
-        pipeline_createinfo.vertex_input_state.vertex_attributes = vertex_attributes;
+        pipeline_createinfo.vertex_input_state.num_vertex_attributes = vertex_attributes.size();
+        pipeline_createinfo.vertex_input_state.vertex_attributes = vertex_attributes.data();
     }
 
     // describe the color target
     {
-        SDL_GPUColorTargetDescription color_target_descriptions[1]{};
+        std::array<SDL_GPUColorTargetDescription, 1> color_target_descriptions{};
         color_target_descriptions[0] = {};
         color_target_descriptions[0].blend_state.enable_blend          = true;
         color_target_descriptions[0].blend_state.color_blend_op        = SDL_GPU_BLENDOP_ADD;
@@ -160,8 +161,8 @@ void App::initGpuPiepline()
         color_target_descriptions[0].blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
         color_target_descriptions[0].format                            = SDL_GetGPUSwapchainTextureFormat(gpu_device_.get(), window_.get());
 
-        pipeline_createinfo.target_info.num_color_targets = 1;
-        pipeline_createinfo.target_info.color_target_descriptions = color_target_descriptions;
+        pipeline_createinfo.target_info.num_color_targets = color_target_descriptions.size();
+        pipeline_createinfo.target_info.color_target_descriptions = color_target_descriptions.data();
     }
 
     gpu_pipeline_ = SDL::Meta<SDL_GPUGraphicsPipeline>::create(gpu_device_, &pipeline_createinfo);
@@ -228,34 +229,30 @@ void App::render()
         return;
     }
 
-    SDL_GPUColorTargetInfo color_target_info{};
-    color_target_info.clear_color = SDL_FColor {
-        .r=240/255.0f,
-        .g=240/255.0f,
-        .b=240/255.0f,
-        .a=255/255.0f};
-    color_target_info.load_op  = SDL_GPU_LOADOP_CLEAR;
-    color_target_info.store_op = SDL_GPU_STOREOP_STORE;
-    color_target_info.texture  = swapchain_texture;
+    std::array<SDL_GPUColorTargetInfo, 1> color_target_infos{};
+    color_target_infos[0].clear_color = { .r=240/255.0f, .g=240/255.0f, .b=240/255.0f, .a=255/255.0f};
+    color_target_infos[0].load_op     = SDL_GPU_LOADOP_CLEAR;
+    color_target_infos[0].store_op    = SDL_GPU_STOREOP_STORE;
+    color_target_infos[0].texture     = swapchain_texture;
 
     std::unique_ptr<SDL_GPURenderPass, decltype(&SDL_EndGPURenderPass)> gpu_render_pass{
         SDL_BeginGPURenderPass(
             command_buffer.get(),
-            &color_target_info,
-            1,
+            color_target_infos.data(),
+            color_target_infos.size(),
             nullptr),
         SDL_EndGPURenderPass};
     SDL_BindGPUGraphicsPipeline(gpu_render_pass.get(), gpu_pipeline_.get());
 
     // bind the vertex buffer
-    SDL_GPUBufferBinding bufferBindings[1]{};
+    std::array<SDL_GPUBufferBinding, 1> bufferBindings{};
     bufferBindings[0].buffer = gpu_vertex_buffer_.get(); // index 0 is slot 0 in this example
     bufferBindings[0].offset = 0; // start from the first byte
     SDL_BindGPUVertexBuffers(
         gpu_render_pass.get(),
         0,
-        bufferBindings,
-        1); // bind one buffer starting from slot 0
+        bufferBindings.data(),
+        bufferBindings.size()); // bind one buffer starting from slot 0
 
     // issue a draw call
     SDL_DrawGPUPrimitives(

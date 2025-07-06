@@ -14,5 +14,10 @@ include(cmake/utils.cmake)
 
 fetch_sdl()
 
+add_subdirectory(SDL)
+
+add_subdirectory(3rd/glad)
+
 add_subdirectory(00-base_framework)
 add_subdirectory(01-gpu_render)
+add_subdirectory(02-opengl_render)

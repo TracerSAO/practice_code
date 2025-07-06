@@ -5,7 +5,9 @@ file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS ./*.hpp ./*.cpp)
 add_executable(${PROJECT_NAME} ${SRCS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    SDL3::SDL3
+    SDL_wrapper)
 
 enable_compile_option(${PROJECT_NAME})
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
