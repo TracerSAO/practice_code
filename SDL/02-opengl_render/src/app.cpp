@@ -1,12 +1,7 @@
 #include "app.hpp"
 
 #include <array>
-#include <format>
-#include <functional>
-#include <numbers>
-#include <ranges>
 #include <stdexcept>
-#include <string_view>
 
 namespace {
 
@@ -103,13 +98,13 @@ App::App()
     }
 
     {
-        const std::array vertex{
+        constexpr std::array vertex{
              0.5f,  0.5f, 0.0f,  // top right
              0.5f, -0.5f, 0.0f,  // bottom right
             -0.5f, -0.5f, 0.0f,  // bottom left
             -0.5f,  0.5f, 0.0f   // top left
         };
-        const std::array indices {
+        constexpr std::array indices{
             0, 1, 3,  // first Triangle
             1, 2, 3   // second Triangle
         };

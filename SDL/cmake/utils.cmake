@@ -43,9 +43,7 @@ function(enable_compile_option target_name)
             "-Werror=vla"
             "-Wnon-virtual-dtor")
         target_compile_options(${target_name} PRIVATE
-            $<$<OR:$<CXX_COMPILER_ID:Clang>,
-                   $<CXX_COMPILER_ID:AppleClang>,
-                   $<CXX_COMPILER_ID:GNU>>:${BASE_OPTIONS}>
+            $<$<OR:$<CXX_COMPILER_ID:Clang>, $<CXX_COMPILER_ID:AppleClang>, $<CXX_COMPILER_ID:GNU>>: ${BASE_OPTIONS}>
             $<$<CXX_COMPILER_ID:MSVC>:${MSVC_OPTIONS}>)
     endif()
 endfunction()
@@ -70,7 +68,6 @@ function(enable_thread_sanitizer target_name)
     message(STATUS "Thread sanitizer enabled")
     target_compile_options(${target_name} PRIVATE
         -fsanitize=thread
-        -fno-omit-frame-pointer
-        -shared-libasan)
-    target_link_libraries(${target_name} PRIVATE -fsanitizer=thread)
+        -fno-omit-frame-pointer)
+    target_link_libraries(${target_name} PRIVATE -fsanitize=thread)
 endfunction()

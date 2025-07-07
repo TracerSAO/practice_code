@@ -12,5 +12,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 enable_compile_option(${PROJECT_NAME})
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     enable_addr_sanitizer(${PROJECT_NAME})
-    enable_thread_sanitizer(${PROJECT_NAME})
 endif()
