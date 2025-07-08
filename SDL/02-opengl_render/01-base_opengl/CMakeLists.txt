@@ -1,6 +1,6 @@
 project(02-01-base_opengl)
 
-add_library(${PROJECT_NAME} STATIC app.cpp ../main.cpp)
+add_executable(${PROJECT_NAME} app.cpp ../main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 02-opengl_render)
 target_link_libraries(${PROJECT_NAME} PRIVATE
