@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-#include "App.hpp"
+#include "app.hpp"
 
 extern "C" {
 

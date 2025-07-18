@@ -7,10 +7,10 @@
 
 #include <glad/glad.h>
 
-namespace GL
-{
+namespace GL {
 
-class GL_Shader {
+class GL_Shader
+{
 public:
     GL_Shader(GLenum shader_type, const char *shader_source) {
         shader_id_ = glCreateShader(shader_type);
@@ -40,7 +40,8 @@ private:
     GLuint shader_id_{};
 };
 
-class GL_ShaderProgram {
+class GL_ShaderProgram
+{
 public:
     template <class ...Args>
     GL_ShaderProgram(Args&&... args) : shader_program_id_(glCreateProgram()) {

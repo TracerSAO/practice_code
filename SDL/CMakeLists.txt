@@ -14,7 +14,8 @@ include(cmake/utils.cmake)
 
 fetch_sdl()
 
-add_subdirectory(SDL)
+add_subdirectory(common/SDL)
+add_subdirectory(common/opengl)
 
 add_subdirectory(3rd/glad)
 
