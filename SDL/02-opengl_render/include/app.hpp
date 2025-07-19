@@ -4,7 +4,6 @@
 
 #include <SDL3/SDL.h>
 
-#include "opengl/gl.hpp"
 #include "SDL/SDL.hpp"
 
 class App
