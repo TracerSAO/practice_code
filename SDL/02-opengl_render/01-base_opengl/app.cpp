@@ -2,6 +2,7 @@
 
 #include <array>
 #include <stdexcept>
+#include <string>
 #include <ranges>
 
 namespace {
@@ -37,12 +38,12 @@ struct Demo : public IFrameWork {
 
     void init() override {
         std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-            SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/vertex.glsl", nullptr), SDL_free};
+            SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
         if (nullptr == vertex_shader_source) {
             throw std::runtime_error{"vertex shader source open failed"};
         }
         std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-            SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/fragment.glsl", nullptr), SDL_free};
+            SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
         if (nullptr == fragment_shader_source) {
             throw std::runtime_error{"fragment shader source open failed"};
             return;
@@ -99,7 +100,8 @@ struct Demo : public IFrameWork {
 /**
  * @brief 使用 glDrawArrays 绘制相邻两个三角形
  */
-struct Homework_1 : public IFrameWork {
+struct Homework_1 : public IFrameWork
+{
     GLuint VAO{};
     GLuint VBO{};
     GLuint EBO{};
@@ -115,12 +117,12 @@ struct Homework_1 : public IFrameWork {
         // load gl shader
         {
             std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-                SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/vertex.glsl", nullptr), SDL_free};
+                SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
             if (nullptr == vertex_shader_source) {
                 throw std::runtime_error{"vertex shader source open failed"};
             }
             std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-                SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/fragment.glsl", nullptr), SDL_free};
+                SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
             if (nullptr == fragment_shader_source) {
                 throw std::runtime_error{"fragment shader source open failed"};
                 return;
@@ -195,12 +197,12 @@ struct Homework_2 : public IFrameWork {
         // load gl shader
         {
             std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-                SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/vertex.glsl", nullptr), SDL_free};
+                SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
             if (nullptr == vertex_shader_source) {
                 throw std::runtime_error{"vertex shader source open failed"};
             }
             std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-                SDL_LoadFile("./SDL/02-opengl_render/01-base_opengl/shader/fragment.glsl", nullptr), SDL_free};
+                SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
             if (nullptr == fragment_shader_source) {
                 throw std::runtime_error{"fragment shader source open failed"};
                 return;
@@ -264,6 +266,10 @@ std::unique_ptr<IFrameWork> g_work;
 
 void App::Create()
 {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        throw std::runtime_error{"SDL init failed"};
+    }
+
     {
         // 启用双缓冲：前台缓冲显示当前帧，后台缓冲绘制下一帧
         // 交换缓冲时可避免画面撕裂，提升渲染流畅性（默认开启）
@@ -293,6 +299,10 @@ void App::Create()
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
         // 指定使用核心配置文件（不含过时的固定管线函数）
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+#if !defined(NDEBUG)
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
     }
 
     window_ = SDL::Meta<SDL_Window>::create(
@@ -309,6 +319,17 @@ void App::Create()
         throw std::runtime_error{"gladLoadGLLoader load failed"};
 	}
 
+    // enable OpenGL debug context if context allows for debug context
+    int flags{};
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+        // SDL_assert(false);
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // makes sure errors are displayed synchronously
+        glDebugMessageCallback(GL::glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+
     // g_work = std::make_unique<Demo>();
     // g_work = std::make_unique<Homework_1>();
     g_work = std::make_unique<Homework_2>();
@@ -318,6 +339,8 @@ void App::Create()
 void App::Destory()
 {
     g_work.reset();
+
+    SDL_Quit();
 }
 
 void App::Render()

@@ -1,5 +1,7 @@
 #include "app.hpp"
 
+#include <format>
+
 #include "SDL/SDL.hpp"
 
 constexpr auto WINDOW_WIDTH{1080};
@@ -29,6 +31,10 @@ void App::Render()
 
 void App::init()
 {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        throw std::runtime_error{std::format("SDL_Init failed, error={}", SDL_GetError()) };
+    }
+
     window_ = SDL::Meta<SDL_Window>::create("hello OpenGL",
                                             WINDOW_WIDTH,
                                             WINDOW_HEIGHT,
@@ -39,4 +45,6 @@ void App::init()
 void App::render()
 {
     SDL_RenderPresent(renderer_.get());
+
+    SDL_Quit();
 }

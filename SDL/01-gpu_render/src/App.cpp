@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include <array>
+#include <format>
 #include <stdexcept>
 
 #include "SDL/SDL.hpp"
@@ -48,6 +49,10 @@ void App::Render()
 
 App::App()
 {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        throw std::runtime_error{std::format("SDL_Init failed, error={}", SDL_GetError()) };
+    }
+
     window_ = SDL::Meta<SDL_Window>::create(
         "hello gpu render",
         WINDOW_WIDTH,
@@ -70,6 +75,8 @@ App::App()
 App::~App()
 {
     SDL_ReleaseWindowFromGPUDevice(gpu_device_.get(), window_.get());
+
+    SDL_Quit();
 }
 
 void App::initGpuPiepline()
