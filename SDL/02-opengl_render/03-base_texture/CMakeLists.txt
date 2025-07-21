@@ -1,4 +1,4 @@
-project(02-02-base_shader)
+project(02-03-base_texture)
 
 add_executable(${PROJECT_NAME} app.cpp ../main.cpp)
 

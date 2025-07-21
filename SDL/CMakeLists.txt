@@ -18,6 +18,7 @@ add_subdirectory(common/SDL)
 add_subdirectory(common/opengl)
 
 add_subdirectory(3rd/glad)
+add_subdirectory(3rd/stb)
 
 add_subdirectory(00-base_framework)
 add_subdirectory(01-gpu_render)
