@@ -9,7 +9,7 @@ macro(fetch_sdl)
     set(SDL_TEST   OFF  CACHE BOOL "" FORCE)
     set(SDL_SHARED ON   CACHE BOOL "" FORCE)
     set(SDL_STATIC OFF  CACHE BOOL "" FORCE)
-    set(SDL_ASAN   OFF   CACHE BOOL "" FORCE)
+    set(SDL_ASAN   OFF  CACHE BOOL "" FORCE)
     set(SDL_CCACHE ON   CACHE BOOL "" FORCE)
 
     FetchContent_MakeAvailable(SDL)

@@ -75,7 +75,7 @@ struct Demo : public IFrameWork {
         }
 
         constexpr std::array vertex{
-            // x      y     z      r     g     b      s     t
+            // x      y     z      r     g     b      u     v
             -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // left top
             -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // left botoom
              0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // right top

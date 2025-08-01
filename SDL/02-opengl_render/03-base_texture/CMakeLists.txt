@@ -7,7 +7,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     SDL_wrapper
     opengl_wrapper
-    stb)
+    3rd::stb
+    3rd::glm::glm)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
