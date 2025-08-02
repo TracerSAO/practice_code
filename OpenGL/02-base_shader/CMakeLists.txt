@@ -1,10 +1,9 @@
-project(02-02-base_shader)
+project(02-base_shader)
 
-add_executable(${PROJECT_NAME} app.cpp ../main.cpp)
+add_executable(${PROJECT_NAME} app.cpp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 02-opengl_render)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    SDL3::SDL3
+    pratice_opengl
     SDL_wrapper
     opengl_wrapper)
 

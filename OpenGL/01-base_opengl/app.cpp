@@ -5,6 +5,9 @@
 #include <string>
 #include <ranges>
 
+#include "i_homework.hpp"
+#include "opengl/gl.hpp"
+
 namespace {
 
 constexpr auto WINDOW_WIDTH  {static_cast<int>(1080*0.8f)};
@@ -15,15 +18,9 @@ std::shared_ptr<SDL::SDL_GLContext> gl_context_;
 
 } // namespace
 
-struct IFrameWork {
-    virtual ~IFrameWork() = default;
-
-    virtual void init() = 0;
-    virtual void render() = 0;
-};
-
-struct Demo : public IFrameWork {
-    std::shared_ptr<GL::GL_ShaderProgram> gl_shader_program_;
+struct Demo : public IHomework
+{
+    std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
     GLuint VAO{};
     GLuint VBO{};
@@ -37,20 +34,9 @@ struct Demo : public IFrameWork {
     }
 
     void init() override {
-        std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-            SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
-        if (nullptr == vertex_shader_source) {
-            throw std::runtime_error{"vertex shader source open failed"};
-        }
-        std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-            SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
-        if (nullptr == fragment_shader_source) {
-            throw std::runtime_error{"fragment shader source open failed"};
-            return;
-        }
-        const GL::GL_Shader vertex_shader{GL_VERTEX_SHADER, static_cast<const char *>(vertex_shader_source.get())};
-        const GL::GL_Shader fragment_shader{GL_FRAGMENT_SHADER, static_cast<const char *>(fragment_shader_source.get())};
-        gl_shader_program_ = std::make_shared<GL::GL_ShaderProgram>(vertex_shader.handle(), fragment_shader.handle());
+        const GL::Shader vertex_shader{GL_VERTEX_SHADER, "shader/vertex.glsl"};
+        const GL::Shader fragment_shader{GL_FRAGMENT_SHADER, "shader/fragment.glsl"};
+        gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         constexpr std::array vertex{
             //   x      y     z
@@ -100,12 +86,12 @@ struct Demo : public IFrameWork {
 /**
  * @brief 使用 glDrawArrays 绘制相邻两个三角形
  */
-struct Homework_1 : public IFrameWork
+struct Homework_1 : public IHomework
 {
     GLuint VAO{};
     GLuint VBO{};
     GLuint EBO{};
-    std::shared_ptr<GL::GL_ShaderProgram> gl_shader_program_;
+    std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
     ~Homework_1() override {
         glDeleteVertexArrays(1, &VAO);
@@ -115,22 +101,9 @@ struct Homework_1 : public IFrameWork
 
     void init() override {
         // load gl shader
-        {
-            std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-                SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
-            if (nullptr == vertex_shader_source) {
-                throw std::runtime_error{"vertex shader source open failed"};
-            }
-            std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-                SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
-            if (nullptr == fragment_shader_source) {
-                throw std::runtime_error{"fragment shader source open failed"};
-                return;
-            }
-            const GL::GL_Shader vertex_shader{GL_VERTEX_SHADER, static_cast<const char *>(vertex_shader_source.get())};
-            const GL::GL_Shader fragment_shader{GL_FRAGMENT_SHADER, static_cast<const char *>(fragment_shader_source.get())};
-            gl_shader_program_ = std::make_shared<GL::GL_ShaderProgram>(vertex_shader.handle(), fragment_shader.handle());
-        }
+        const GL::Shader vertex_shader{GL_VERTEX_SHADER, "shader/vertex.glsl"};
+        const GL::Shader fragment_shader{GL_FRAGMENT_SHADER, "shader/fragment.glsl"};
+        gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         // init VAO/VBO/EBO
         {
@@ -179,14 +152,14 @@ struct Homework_1 : public IFrameWork
     }
 };
 
-struct Homework_2 : public IFrameWork {
+struct Homework_2 : public IHomework {
     static constexpr auto TrangleFirst{int{0}};
     static constexpr auto TrangleSecond{int{0}};
     std::array<GLuint, 2> VAO{};
     std::array<GLuint, 2> VBO{};
     std::array<GLuint, 2> EBO{};
 
-    std::shared_ptr<GL::GL_ShaderProgram> gl_shader_program_;
+    std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
     ~Homework_2() {
         glDeleteBuffers(static_cast<int>(VBO.size()), VBO.data());
@@ -195,22 +168,9 @@ struct Homework_2 : public IFrameWork {
 
     void init() override {
         // load gl shader
-        {
-            std::unique_ptr<void, decltype(&::SDL_free)> vertex_shader_source{
-                SDL_LoadFile("shader/vertex.glsl", nullptr), SDL_free};
-            if (nullptr == vertex_shader_source) {
-                throw std::runtime_error{"vertex shader source open failed"};
-            }
-            std::unique_ptr<void, decltype(&::SDL_free)> fragment_shader_source{
-                SDL_LoadFile("shader/fragment.glsl", nullptr), SDL_free};
-            if (nullptr == fragment_shader_source) {
-                throw std::runtime_error{"fragment shader source open failed"};
-                return;
-            }
-            const GL::GL_Shader vertex_shader{GL_VERTEX_SHADER, static_cast<const char *>(vertex_shader_source.get())};
-            const GL::GL_Shader fragment_shader{GL_FRAGMENT_SHADER, static_cast<const char *>(fragment_shader_source.get())};
-            gl_shader_program_ = std::make_shared<GL::GL_ShaderProgram>(vertex_shader.handle(), fragment_shader.handle());
-        }
+        const GL::Shader vertex_shader{GL_VERTEX_SHADER, "shader/vertex.glsl"};
+        const GL::Shader fragment_shader{GL_FRAGMENT_SHADER, "shader/fragment.glsl"};
+        gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         constexpr std::array Vertexs{
             std::array{
@@ -262,7 +222,7 @@ struct Homework_2 : public IFrameWork {
     }
 };
 
-std::unique_ptr<IFrameWork> g_work;
+std::unique_ptr<IHomework> g_work;
 
 void App::Create()
 {

@@ -5,7 +5,10 @@
 #include <string>
 #include <ranges>
 
+#include "i_homework.hpp"
 #include "opengl/gl.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 
 namespace {
 
@@ -17,24 +20,20 @@ std::shared_ptr<SDL::SDL_GLContext> gl_context_;
 
 } // namespace
 
-struct IFrameWork {
-    virtual ~IFrameWork() = default;
-
-    virtual void init() = 0;
-    virtual void render() = 0;
-};
-
-struct Demo : public IFrameWork {
-    GLuint VAO{};
-    GLuint VBO{};
-    // GLuint EBO{};
+struct Demo : public IHomework
+{
+    GLuint VAO_{};
+    GLuint VBO_{};
+    GLuint EBO_{};
     std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
+
+    GLuint texture_{};
 
     ~Demo() override {
         gl_shader_program_.reset();
-        glDeleteBuffers(1, &VBO);
-        // glDeleteBuffers(1, &EBO);
-        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO_);
+        glDeleteBuffers(1, &EBO_);
+        glDeleteVertexArrays(1, &VAO_);
     }
 
     void init() override {
@@ -42,30 +41,62 @@ struct Demo : public IFrameWork {
         const GL::Shader fragment_shader{GL_FRAGMENT_SHADER, "shader/fragment.glsl"};
         gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
-        constexpr std::array vertex{
-            // x      y     z   //   r     g     b
-             0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f, // bottom right
-            -0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f, // bottom left
-             0.0f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f, // top left
-        };
-        // constexpr std::array indices{
-        //     0, 1, 3,  // first Triangle
-        //     1, 2, 3   // second Triangle
-        // };
-
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
         {
-            glBindVertexArray(VAO);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), vertex.data(), GL_STATIC_DRAW);
-            // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+            glGenTextures(1, &texture_);
+            GL::glCheckError();
+            glBindTexture(GL_TEXTURE_2D, texture_);
+            GL::glCheckError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            int32_t width{};
+            int32_t height{};
+            int32_t n_channels{};
+            stbi_set_flip_vertically_on_load(true);
+            uint8_t *image_data{stbi_load("./texture.jpg", &width, &height, &n_channels, 0)};
+            if (nullptr == image_data) {
+                throw std::runtime_error{"load texture failed"};
+            }
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), reinterpret_cast<void *>(0));
+            GLenum format{GL_RGB}; // 根据实际通道数设置格式
+            if (n_channels == 4) { format = GL_RGBA; }
+            else if (n_channels == 1) { format = GL_RED; }
+
+            glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            // glBindTexture(GL_TEXTURE_2D, 0);
+        }
+
+        constexpr std::array vertex{
+            // x      y     z      r     g     b      u     v
+            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // left top
+            -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // left botoom
+             0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // right top
+             0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  1.0f, 0.0f, // right botoom
+        };
+        constexpr std::array indices{
+            0, 1, 2,  // first Triangle
+            1, 2, 3   // second Triangle
+        };
+
+        glGenVertexArrays(1, &VAO_);
+        glGenBuffers(1, &VBO_);
+        glGenBuffers(1, &EBO_);
+        {
+            glBindVertexArray(VAO_);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), vertex.data(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(0));
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), reinterpret_cast<void *>(3*sizeof(float)) );
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(3*sizeof(float)) );
             glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(6*sizeof(float)) );
+            glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
@@ -82,16 +113,19 @@ struct Demo : public IFrameWork {
 
         // 绘制
         gl_shader_program_->use();
-        const auto x_pos_offset_location{gl_shader_program_->getUniformLocation("x_pos_offset")};
-        glUniform1f(x_pos_offset_location, 0.5);
+        // const auto tex_location{gl_shader_program_->getUniformLocation("fragment_tex")};
+        // glUniform
+        // const auto x_pos_offset_location{gl_shader_program_->getUniformLocation("x_pos_offset")};
+        // glUniform1f(x_pos_offset_location, 0.5);
 
-        glBindVertexArray(VAO);
-        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindTexture(GL_TEXTURE_2D, texture_);
+        glBindVertexArray(VAO_);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        // glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 };
 
-std::unique_ptr<IFrameWork> g_work;
+std::unique_ptr<IHomework> g_work;
 
 void App::Create()
 {
@@ -134,7 +168,7 @@ void App::Create()
     }
 
     window_ = SDL::Meta<SDL_Window>::create(
-        "hello opengl",
+        "Learn OpenGL",
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
         SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);

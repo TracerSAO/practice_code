@@ -1,10 +1,9 @@
-project(02-03-base_texture)
+project(04-base-coordinate_system)
 
-add_executable(${PROJECT_NAME} app.cpp ../main.cpp)
+add_executable(${PROJECT_NAME} app.cpp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 02-opengl_render)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    SDL3::SDL3
+    pratice_opengl
     SDL_wrapper
     opengl_wrapper
     3rd::stb

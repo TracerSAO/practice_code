@@ -5,9 +5,12 @@
 #include <string>
 #include <ranges>
 
-#include "opengl/gl.hpp"
+#include <glm/glm.hpp>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include <stb/stb_image.h>
+
+#include "i_homework.hpp"
+#include "opengl/gl.hpp"
 
 namespace {
 
@@ -19,25 +22,22 @@ std::shared_ptr<SDL::SDL_GLContext> gl_context_;
 
 } // namespace
 
-struct IFrameWork {
-    virtual ~IFrameWork() = default;
-
-    virtual void init() = 0;
-    virtual void render() = 0;
-};
-
-struct Demo : public IFrameWork {
+struct Demo : public IHomework
+{
     GLuint VAO_{};
     GLuint VBO_{};
     GLuint EBO_{};
     std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
-    GLuint texture_{};
+    GLuint backgroud_texture_{};
+    GLuint preview_texture_{};
 
     ~Demo() override {
         gl_shader_program_.reset();
         glDeleteBuffers(1, &VBO_);
         glDeleteBuffers(1, &EBO_);
+        glDeleteTextures(1, &preview_texture_);
+        glDeleteTextures(1, &backgroud_texture_);
         glDeleteVertexArrays(1, &VAO_);
     }
 
@@ -47,9 +47,9 @@ struct Demo : public IFrameWork {
         gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         {
-            glGenTextures(1, &texture_);
+            glGenTextures(1, &backgroud_texture_);
             GL::glCheckError();
-            glBindTexture(GL_TEXTURE_2D, texture_);
+            glBindTexture(GL_TEXTURE_2D, backgroud_texture_);
             GL::glCheckError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -59,7 +59,7 @@ struct Demo : public IFrameWork {
             int32_t height{};
             int32_t n_channels{};
             stbi_set_flip_vertically_on_load(true);
-            uint8_t *image_data{stbi_load("./texture.jpg", &width, &height, &n_channels, 0)};
+            uint8_t *image_data{stbi_load("./backgroud.png", &width, &height, &n_channels, 0)};
             if (nullptr == image_data) {
                 throw std::runtime_error{"load texture failed"};
             }
@@ -67,12 +67,40 @@ struct Demo : public IFrameWork {
             GLenum format{GL_RGB}; // 根据实际通道数设置格式
             if (n_channels == 4) { format = GL_RGBA; }
             else if (n_channels == 1) { format = GL_RED; }
-
             glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
             glGenerateMipmap(GL_TEXTURE_2D);
 
-            // glBindTexture(GL_TEXTURE_2D, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
+        {
+            glGenTextures(1, &preview_texture_);
+            GL::glCheckError();
+            glBindTexture(GL_TEXTURE_2D, preview_texture_);
+            GL::glCheckError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            int32_t width{};
+            int32_t height{};
+            int32_t n_channels{};
+            stbi_set_flip_vertically_on_load(true);
+            uint8_t *image_data{stbi_load("./preview.jpg", &width, &height, &n_channels, 0)};
+            if (nullptr == image_data) {
+                throw std::runtime_error{"load texture failed"};
+            }
+
+            GLenum format{GL_RGB}; // 根据实际通道数设置格式
+            if (n_channels == 4) { format = GL_RGBA; }
+            else if (n_channels == 1) { format = GL_RED; }
+            glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        gl_shader_program_->use();
+        // glUniform1i(gl_shader_program_->getUniformLocation("texture1"), );
+
 
         constexpr std::array vertex{
             // x      y     z      r     g     b      u     v
@@ -118,19 +146,15 @@ struct Demo : public IFrameWork {
 
         // 绘制
         gl_shader_program_->use();
-        // const auto tex_location{gl_shader_program_->getUniformLocation("fragment_tex")};
-        // glUniform
-        // const auto x_pos_offset_location{gl_shader_program_->getUniformLocation("x_pos_offset")};
-        // glUniform1f(x_pos_offset_location, 0.5);
 
-        glBindTexture(GL_TEXTURE_2D, texture_);
+        glBindTexture(GL_TEXTURE_2D, backgroud_texture_);
         glBindVertexArray(VAO_);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         // glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 };
 
-std::unique_ptr<IFrameWork> g_work;
+std::unique_ptr<IHomework> g_work;
 
 void App::Create()
 {

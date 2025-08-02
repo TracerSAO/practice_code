@@ -1,12 +1,13 @@
-project(02-01-base_opengl)
+project(03-base_texture)
 
-add_executable(${PROJECT_NAME} app.cpp ../main.cpp)
+add_executable(${PROJECT_NAME} app.cpp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 02-opengl_render)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    SDL3::SDL3
+    pratice_opengl
     SDL_wrapper
-    opengl_wrapper)
+    opengl_wrapper
+    3rd::stb
+    3rd::glm::glm)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
