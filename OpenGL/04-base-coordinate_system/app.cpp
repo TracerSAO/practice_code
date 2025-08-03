@@ -99,7 +99,7 @@ struct Demo : public IHomework
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         gl_shader_program_->use();
-        // glUniform1i(gl_shader_program_->getUniformLocation("texture1"), );
+        // glUniform1i(gl_shader_program_->getUniformLocation("u_"), );
 
 
         constexpr std::array vertex{

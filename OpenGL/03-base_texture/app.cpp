@@ -27,10 +27,12 @@ struct Demo : public IHomework
     GLuint EBO_{};
     std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
-    GLuint texture_{};
+    GLuint backend_tex_{};
+    GLuint frontend_tex_{};
 
     ~Demo() override {
-        gl_shader_program_.reset();
+        glDeleteTextures(1, &backend_tex_);
+        glDeleteTextures(1, &frontend_tex_);
         glDeleteBuffers(1, &VBO_);
         glDeleteBuffers(1, &EBO_);
         glDeleteVertexArrays(1, &VAO_);
@@ -42,19 +44,23 @@ struct Demo : public IHomework
         gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         {
-            glGenTextures(1, &texture_);
+            glGenTextures(1, &backend_tex_);
             GL::glCheckError();
-            glBindTexture(GL_TEXTURE_2D, texture_);
+            glBindTexture(GL_TEXTURE_2D, backend_tex_);
             GL::glCheckError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            constexpr float borderColor[]{ 1.0f, 1.0f, 0.0f, 1.0f };
+            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
             int32_t width{};
             int32_t height{};
             int32_t n_channels{};
             stbi_set_flip_vertically_on_load(true);
-            uint8_t *image_data{stbi_load("./texture.jpg", &width, &height, &n_channels, 0)};
+            uint8_t *image_data{stbi_load("./preview-backend.jpg", &width, &height, &n_channels, 0)};
             if (nullptr == image_data) {
                 throw std::runtime_error{"load texture failed"};
             }
@@ -68,14 +74,66 @@ struct Demo : public IHomework
 
             // glBindTexture(GL_TEXTURE_2D, 0);
         }
+        {
+            glGenTextures(1, &frontend_tex_);
+            GL::glCheckError();
+            glBindTexture(GL_TEXTURE_2D, frontend_tex_);
+            GL::glCheckError();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            int32_t width{};
+            int32_t height{};
+            int32_t n_channels{};
+            stbi_set_flip_vertically_on_load(true);
+            uint8_t *image_data{stbi_load("./preview-frontend.jpg", &width, &height, &n_channels, 0)};
+            if (nullptr == image_data) {
+                throw std::runtime_error{"load texture failed"};
+            }
 
+            GLenum format{GL_RGB}; // 根据实际通道数设置格式
+            if (n_channels == 4) { format = GL_RGBA; }
+            else if (n_channels == 1) { format = GL_RED; }
+
+            glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            // glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        {
+            gl_shader_program_->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, backend_tex_);
+            glUniform1i(gl_shader_program_->getUniformLocation("u_backend_tex0"),  0);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, frontend_tex_);
+            glUniform1i(gl_shader_program_->getUniformLocation("u_frontend_tex1"), 1);
+        }
+
+        /**
+         * 扩张 UV 坐标
+         */
+        // constexpr std::array vertex{
+        //     // x      y      z       r      g      b       u      v
+        //     -0.5f,  0.5f,  0.0f,   1.0f,  1.0f,  0.0f,  -1.0f,  3.0f, // left top
+        //     -0.5f, -0.5f,  0.0f,   0.0f,  0.0f,  1.0f,  -1.0f,  0.0f, // left botoom
+        //      0.5f,  0.5f,  0.0f,   1.0f,  0.0f,  0.0f,   2.0f,  3.0f, // right top
+        //      0.5f, -0.5f,  0.0f,   1.0f,  1.0f,  0.0f,   2.0f,  0.0f, // right botoom
+        // };
+
+        /**
+         * 缩放 UV 坐标
+         */
         constexpr std::array vertex{
-            // x      y     z      r     g     b      u     v
-            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // left top
-            -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // left botoom
-             0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // right top
-             0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  1.0f, 0.0f, // right botoom
+            // x      y      z      r       g      b       u      v
+            -0.5f,  0.5f,  0.0f,   1.0f,  1.0f,  0.0f,   0.0f,  1.0f, // left top
+            -0.5f, -0.5f,  0.0f,   0.0f,  0.0f,  1.0f,   0.0f,  0.0f, // left botoom
+             0.5f,  0.5f,  0.0f,   1.0f,  0.0f,  0.0f,   1.0f,  1.0f, // right top
+             0.5f, -0.5f,  0.0f,   1.0f,  1.0f,  0.0f,   1.0f,  0.0f, // right botoom
         };
+
         constexpr std::array indices{
             0, 1, 2,  // first Triangle
             1, 2, 3   // second Triangle
@@ -113,12 +171,7 @@ struct Demo : public IHomework
 
         // 绘制
         gl_shader_program_->use();
-        // const auto tex_location{gl_shader_program_->getUniformLocation("fragment_tex")};
-        // glUniform
-        // const auto x_pos_offset_location{gl_shader_program_->getUniformLocation("x_pos_offset")};
-        // glUniform1f(x_pos_offset_location, 0.5);
 
-        glBindTexture(GL_TEXTURE_2D, texture_);
         glBindVertexArray(VAO_);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         // glDrawArrays(GL_TRIANGLES, 0, 3);
