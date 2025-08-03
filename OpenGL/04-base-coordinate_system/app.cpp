@@ -1,10 +1,12 @@
 #include "app.hpp"
 
 #include <array>
+#include <ranges>
 #include <stdexcept>
 #include <string>
-#include <ranges>
+#include <thread>
 
+#include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
@@ -29,27 +31,33 @@ struct Demo : public IHomework
     GLuint EBO_{};
     std::shared_ptr<GL::ShaderProgram> gl_shader_program_;
 
-    GLuint backgroud_texture_{};
-    GLuint preview_texture_{};
+    GLuint backend_tex_{};
+    GLuint frontend_tex_{};
+
+    glm::mat4 model_mat_{1.0f};
+    glm::mat4 view_mat_{1.0f};
+    glm::mat4 projection_mat_{1.0f};
 
     ~Demo() override {
         gl_shader_program_.reset();
         glDeleteBuffers(1, &VBO_);
         glDeleteBuffers(1, &EBO_);
-        glDeleteTextures(1, &preview_texture_);
-        glDeleteTextures(1, &backgroud_texture_);
+        glDeleteTextures(1, &frontend_tex_);
+        glDeleteTextures(1, &backend_tex_);
         glDeleteVertexArrays(1, &VAO_);
     }
 
     void init() override {
+        glEnable(GL_DEPTH_TEST);
+
         const GL::Shader vertex_shader{GL_VERTEX_SHADER, "shader/vertex.glsl"};
         const GL::Shader fragment_shader{GL_FRAGMENT_SHADER, "shader/fragment.glsl"};
         gl_shader_program_ = std::make_shared<GL::ShaderProgram>(vertex_shader, fragment_shader);
 
         {
-            glGenTextures(1, &backgroud_texture_);
+            glGenTextures(1, &backend_tex_);
             GL::glCheckError();
-            glBindTexture(GL_TEXTURE_2D, backgroud_texture_);
+            glBindTexture(GL_TEXTURE_2D, backend_tex_);
             GL::glCheckError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -59,7 +67,7 @@ struct Demo : public IHomework
             int32_t height{};
             int32_t n_channels{};
             stbi_set_flip_vertically_on_load(true);
-            uint8_t *image_data{stbi_load("./backgroud.png", &width, &height, &n_channels, 0)};
+            uint8_t *image_data{stbi_load("./preview-backend.jpg", &width, &height, &n_channels, 0)};
             if (nullptr == image_data) {
                 throw std::runtime_error{"load texture failed"};
             }
@@ -73,9 +81,9 @@ struct Demo : public IHomework
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         {
-            glGenTextures(1, &preview_texture_);
+            glGenTextures(1, &frontend_tex_);
             GL::glCheckError();
-            glBindTexture(GL_TEXTURE_2D, preview_texture_);
+            glBindTexture(GL_TEXTURE_2D, frontend_tex_);
             GL::glCheckError();
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -85,7 +93,7 @@ struct Demo : public IHomework
             int32_t height{};
             int32_t n_channels{};
             stbi_set_flip_vertically_on_load(true);
-            uint8_t *image_data{stbi_load("./preview.jpg", &width, &height, &n_channels, 0)};
+            uint8_t *image_data{stbi_load("./preview-frontend.jpg", &width, &height, &n_channels, 0)};
             if (nullptr == image_data) {
                 throw std::runtime_error{"load texture failed"};
             }
@@ -98,38 +106,97 @@ struct Demo : public IHomework
 
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        gl_shader_program_->use();
-        // glUniform1i(gl_shader_program_->getUniformLocation("u_"), );
+        {
+            gl_shader_program_->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, backend_tex_);
+            glUniform1i(gl_shader_program_->getUniformLocation("u_backend_tex0"), 0);
 
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, frontend_tex_);
+            glUniform1i(gl_shader_program_->getUniformLocation("u_frontend_tex1"), 1);
+
+            model_mat_ = glm::rotate(model_mat_, glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+            view_mat_ = glm::translate(view_mat_, glm::vec3(0.0f, 0.0f, -3.0f));
+            projection_mat_ =
+                glm::perspective(
+                    glm::radians(45.0f),
+                    static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT),
+                    0.1f,
+                    100.0f);
+            glUniformMatrix4fv(gl_shader_program_->getUniformLocation("u_model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat_));
+            glUniformMatrix4fv(gl_shader_program_->getUniformLocation("u_view_mat"), 1, GL_FALSE, glm::value_ptr(view_mat_));
+            glUniformMatrix4fv(gl_shader_program_->getUniformLocation("u_projection_mat"), 1, GL_FALSE, glm::value_ptr(projection_mat_));
+        }
 
         constexpr std::array vertex{
             // x      y     z      r     g     b      u     v
-            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // left top
-            -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // left botoom
-             0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // right top
-             0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  1.0f, 0.0f, // right botoom
+            // -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // left top
+            // -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // left botoom
+            //  0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // right top
+            //  0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  1.0f, 0.0f, // right botoom
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
         };
-        constexpr std::array indices{
-            0, 1, 2,  // first Triangle
-            1, 2, 3   // second Triangle
-        };
+        // constexpr std::array indices{
+        //     0, 1, 2,  // first Triangle
+        //     1, 2, 3   // second Triangle
+        // };
 
         glGenVertexArrays(1, &VAO_);
         glGenBuffers(1, &VBO_);
-        glGenBuffers(1, &EBO_);
+        // glGenBuffers(1, &EBO_);
         {
             glBindVertexArray(VAO_);
             glBindBuffer(GL_ARRAY_BUFFER, VBO_);
             glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), vertex.data(), GL_STATIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+            // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_);
+            // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(0));
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), reinterpret_cast<void *>(0));
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(3*sizeof(float)) );
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), reinterpret_cast<void *>(3*sizeof(float)) );
             glEnableVertexAttribArray(1);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), reinterpret_cast<void *>(6*sizeof(float)) );
-            glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
@@ -140,6 +207,31 @@ struct Demo : public IHomework
     }
 
     void render() override {
+        constexpr glm::vec3 cubePositions[]{
+            glm::vec3( 0.0f,  0.0f,  0.0f),
+            glm::vec3( 2.0f,  5.0f, -15.0f),
+            glm::vec3(-1.5f, -2.2f, -2.5f),
+            glm::vec3(-3.8f, -2.0f, -12.3f),
+            glm::vec3( 2.4f, -0.4f, -3.5f),
+            glm::vec3(-1.7f,  3.0f, -7.5f),
+            glm::vec3( 1.3f, -2.0f, -2.5f),
+            glm::vec3( 1.5f,  2.0f, -2.5f),
+            glm::vec3( 1.5f,  0.2f, -1.5f),
+            glm::vec3(-1.3f,  1.0f, -1.5f)
+        };
+        static glm::mat4 model_arr[] {
+            glm::translate(glm::mat4{1.0f}, cubePositions[0]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[1]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[2]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[3]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[4]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[5]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[6]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[7]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[8]),
+            glm::translate(glm::mat4{1.0f}, cubePositions[9]),
+        };
+
         // 清屏
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -147,10 +239,20 @@ struct Demo : public IHomework
         // 绘制
         gl_shader_program_->use();
 
-        glBindTexture(GL_TEXTURE_2D, backgroud_texture_);
         glBindVertexArray(VAO_);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
+        for (auto i{0}; i < 10; i++) {
+            glm::mat4 &model = model_arr[i];
+            if (i % 3 == 0) {
+                float angle = 20.0f * static_cast<float>(i) + 10.0f;
+                model = glm::rotate(model, glm::radians(angle) * 0.01f, glm::vec3(1.0f, 0.3f, 0.5f));
+            }
+            glUniformMatrix4fv(gl_shader_program_->getUniformLocation("u_model_mat"), 1, GL_FALSE, glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        // glBindVertexArray(VAO_);
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 };
 
